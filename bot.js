@@ -131,6 +131,7 @@ bot.onText(/^(\?(?!supply|info|admin|help).+)/, async (msg, match) => {
     }
 
     //  Compare command
+    // compare command handler
     if (command.startsWith("?compare")) {
         const tokenB = command.slice(8).trim().toLowerCase();
         try {
@@ -518,7 +519,7 @@ async function getBalancePrices(symbols) {
         });
 
         const prices = {};
-
+        if (Array.isArray(data)) { 
         data.forEach((coin) => {
             const symbol = Object.keys(coinGeckoIds).find((key) => coinGeckoIds[key] === coin.id);
             if (symbol) {
@@ -528,7 +529,7 @@ async function getBalancePrices(symbols) {
                 };
             }
         });
-
+    }
         return prices;
     } catch (error) {
         console.error(error);
@@ -540,6 +541,10 @@ const additionalCoins = {
     // Add any additional coins here
 };
 
+const sleep = (ms) => {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
 const fetchMarketCaps = async (symbols = null) => {
     try {
         const limit = 250;
@@ -549,25 +554,38 @@ const fetchMarketCaps = async (symbols = null) => {
 
         while (shouldFetchMore) {
             const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&page=${page}&sparkline=false`;
-            const response = await axios.get(url);
 
-            if (response.data.length === 0) {
-                shouldFetchMore = false;
-            } else {
-                response.data.forEach((coin) => {
-                    if (!symbols || symbols.includes(coin.symbol)) {
-                        marketCaps[coin.symbol] = {
-                            market_cap: coin.market_cap,
-                            price: coin.current_price,
-                        };
-                    }
-                });
+            try {
+                const response = await axios.get(url);
 
-                // If the desired symbol(s) are found, stop fetching more pages
-                if (symbols && Object.keys(marketCaps).length === symbols.length) {
+                if (response.data.length === 0) {
                     shouldFetchMore = false;
                 } else {
-                    page++;
+                    response.data.forEach((coin) => {
+                        if (!symbols || symbols.includes(coin.symbol)) {
+                            marketCaps[coin.symbol] = {
+                                market_cap: coin.market_cap,
+                                price: coin.current_price,
+                            };
+                        }
+                    });
+
+                    // If the desired symbol(s) are found, stop fetching more pages
+                    if (symbols && Object.keys(marketCaps).length === symbols.length) {
+                        shouldFetchMore = false;
+                    } else {
+                        await sleep(2000); // Wait for 1.2 seconds between requests
+                        page++;
+                    }
+                }
+            } catch (error) {
+                if (error.response && error.response.status === 429) {
+                    const retryAfter = parseInt(error.response.headers['retry-after'], 10) * 1000;
+                    console.log(`Rate limit exceeded. Retrying after ${retryAfter} ms.`);
+                    await new Promise((resolve) => setTimeout(resolve, retryAfter));
+                } else {
+                    console.error("Error fetching market cap data", error);
+                    return null;
                 }
             }
         }
@@ -578,6 +596,7 @@ const fetchMarketCaps = async (symbols = null) => {
         return null;
     }
 };
+
 
 
 
@@ -612,57 +631,4 @@ async function getSupplyData() {
         console.error('Error fetching supply data:', error);
         return null;
     }
-}
-
-
-function compareMarketCaps(a, b) {
-    return b.market_cap - a.market_cap;
-}
-
-
-
-async function fetchAndRankMarketCaps() {
-    // Fetch the data from CoinGecko
-
-    try {
-
-        // Fetch market cap data with a delay
-        const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-        await delay(120000); // Wait for 120 seconds
-
-        const coinData = await fetchMarketCaps();
-
-        // Add the additional coins' data
-        addMissingCoins(coinData, additionalCoins);
-
-        // Calculate the market cap rankings
-        let sortedCoins = Object.entries(coinData)
-            .map(([symbol, data]) => ({
-                symbol: symbol,
-                market_cap: data.market_cap,
-                price: data.price,
-            }))
-            .sort(compareMarketCaps);
-
-        // Print the rankings
-        console.log("Market Cap Rankings:");
-        sortedCoins.forEach((coin, index) => {
-            console.log(`${index + 1}. ${coin.symbol}: ${coin.market_cap}`);
-        });
-    } catch (error) {
-        console.error('Error fetching market cap data', error);
-    }
-}
-
-
-fetchAndRankMarketCaps();
-
-function addMissingCoins(coinData, additionalCoins) {
-    Object.entries(additionalCoins).forEach(([symbol, data]) => {
-        if (!coinData.hasOwnProperty(symbol)) {
-            coinData[symbol] = data;
-        }
-
-
-    });
 }
