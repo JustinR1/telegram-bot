@@ -130,7 +130,6 @@ bot.onText(/^(\?(?!supply|info|admin|help).+)/, async (msg, match) => {
         return;
     }
 
-    //  Compare command
     // compare command handler
     if (command.startsWith("?compare")) {
         const tokenB = command.slice(8).trim().toLowerCase();
@@ -193,16 +192,6 @@ bot.onText(/^(\?(?!supply|info|admin|help).+)/, async (msg, match) => {
             const formattedStakeAmount = formatNumberWithCommas(stakeAmount, 3); // Format the stake amount after performing calculations
             const accountName = data.name;
 
-            // // Add the staked SOUL balance to the balances array as a separate entry
-            // balances.push({
-            //     symbol: 'Staked SOUL',
-            //     decimals: 8,
-            //     amount: stakeAmount * stakeDecimal,
-            //     value: 0,
-            // });
-
-
-
             // Get the token prices and balances
             const symbols = balances.map((balance) => balance.symbol.toLowerCase());
             const balancePrices = await getBalancePrices(symbols);
@@ -247,9 +236,6 @@ bot.onText(/^(\?(?!supply|info|admin|help).+)/, async (msg, match) => {
                 balances[stakedSoulBalanceIndex].value = stakeValue;
             }
 
-
-
-
             let totalValue = 0;
             responseText = `Account: ${accountName || "Not found"}\nStake Amount: ${formattedStakeAmount}${stakeValueText}\nAddress: ${address}\n\nBalances:\n`;
             totalValue += stakeValue;
@@ -274,7 +260,7 @@ bot.onText(/^(\?(?!supply|info|admin|help).+)/, async (msg, match) => {
 
                 responseText += `${balance.symbol} Amount: ${formattedAmount}${valueText}\n`;
             });
-            // totalValue += stakeValue; // Add the stakeValue to the total value
+
             responseText += `\nTotal Value: $${totalValue.toFixed(2)}\n`; // Add the total value to the response text
             const explorerURL = `\nℹ️ Get more in depth information with our <a href="https://explorer.phantasma.io/">Phantasma Explorer</a>`;
             responseText = responseText + explorerURL;
@@ -348,7 +334,6 @@ async function lookUpAddress(input) {
 
 
 async function getSupply() {
-    // ... (rest of the function code)
     try {
         const response = await fetch(
             "https://bp1.phantasma.io/api/v1/GetNexus?extended=true"
@@ -436,16 +421,16 @@ const getStakerMembers = async () => {
 
 function getAdmin() {
     const admins = [
-        { name: "🔨 Justin", username: "@zeroproofs\n" },
-        { name: "🔨 John", username: "@JohnCTK\n" },
-        { name: "🔨 Liam", username: "@LiamLead\n" },
-        { name: "🔨 Crypto Bull Boss", username: "@cryptobullboss\n" },
-        { name: "🔨 Gayle", username: "@guz469\n" },
-        { name: "🔨 Joseph", username: "@JoesLanet\n" },
-        { name: "🔨 Kashta", username: "@CdnKash\n" },
-        { name: "🔨 James", username: "@PoLterjames\n" },
-        { name: "🔨 Yang Wen-li", username: "@nakloVKurt\n" },
-        { name: "🔨 Spiderman", username: "@Souldier_of_fortune\n" },
+        { name: "🔨 Justin", username: "@ zeroproofs\n" },
+        { name: "🔨 John", username: "@ JohnCTK\n" },
+        { name: "🔨 Liam", username: "@ LiamLead\n" },
+        { name: "🔨 Crypto Bull Boss", username: "@ cryptobullboss\n" },
+        { name: "🔨 Gayle", username: "@ guz469\n" },
+        { name: "🔨 Joseph", username: "@ JoesLanet\n" },
+        { name: "🔨 Kashta", username: "@ CdnKash\n" },
+        { name: "🔨 James", username: "@ PoLterjames\n" },
+        { name: "🔨 Yang Wen-li", username: "@ nakloVKurt\n" },
+        { name: "🔨 Spiderman", username: "@ Souldier_of_fortune\n" },
     ];
     return admins.map((admin) => `${admin.name}: ${admin.username}`).join("\n");
 }
@@ -519,27 +504,23 @@ async function getBalancePrices(symbols) {
         });
 
         const prices = {};
-        if (Array.isArray(data)) { 
-        data.forEach((coin) => {
-            const symbol = Object.keys(coinGeckoIds).find((key) => coinGeckoIds[key] === coin.id);
-            if (symbol) {
-                prices[symbol] = {
-                    balance: 0, // Since we don't have the balance information here, set it to 0
-                    price: coin.current_price,
-                };
-            }
-        });
-    }
+        if (Array.isArray(data)) {
+            data.forEach((coin) => {
+                const symbol = Object.keys(coinGeckoIds).find((key) => coinGeckoIds[key] === coin.id);
+                if (symbol) {
+                    prices[symbol] = {
+                        balance: 0, // Since we don't have the balance information here, set it to 0
+                        price: coin.current_price,
+                    };
+                }
+            });
+        }
         return prices;
     } catch (error) {
         console.error(error);
         return null;
     }
 }
-
-const additionalCoins = {
-    // Add any additional coins here
-};
 
 const sleep = (ms) => {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -596,28 +577,6 @@ const fetchMarketCaps = async (symbols = null) => {
         return null;
     }
 };
-
-
-
-
-async function getTokenIds(symbols) {
-    try {
-        const response = await fetch(`https://api.coingecko.com/api/v3/search?query=${symbols.join(',')}`);
-        const data = await response.json();
-        const tokens = data.coins;
-
-        const tokenIds = {};
-        tokens.forEach((token) => {
-            const symbol = token.symbol.toLowerCase();
-            tokenIds[symbol] = token.item.id;
-        });
-
-        return tokenIds;
-    } catch (error) {
-        console.error("Error fetching token IDs:", error);
-        return null;
-    }
-}
 
 async function getSupplyData() {
     try {
